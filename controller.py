@@ -71,7 +71,7 @@ class Controller(torch.nn.Module):
                 # 表示仍处于探索阶段，还不需要进行采样
                 # torch.randint 生成的随机整数将落在 0 到 structure_choice[idx] - 1 的范围内
                 # 这样做可以确保每个计算节点都有一个随机的操作选择，以便进行全面的探索
-                operator_idxs = torch.randint(0, len(operator_choices[i]), size=(batch_size, 1))
+                operator_idxs = torch.randint(0, operator_choices[i], size=(batch_size, 1))
             # 将operator_idxs转换成一个variable
             variable = torch.autograd.Variable(operator_idxs, requires_grad=False)
             # variable是操作符索引，根据其从log_prob中取出对应的log_prob

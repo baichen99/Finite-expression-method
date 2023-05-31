@@ -21,6 +21,9 @@ class UnaryOperation(nn.Module):
             self.b.data.fill_(0)
         self.is_leave = is_leave
 
+    def get_name(self):
+        return func.function_to_str[self.unary]
+    
     def forward(self, x):
         if self.is_leave:
             return self.unary(x)
@@ -31,6 +34,10 @@ class BinaryOperation(nn.Module):
     def __init__(self, operator):
         super(BinaryOperation, self).__init__()
         self.binary = operator
+        
+    def get_name(self):
+        return func.function_to_str[self.binary]
+    
     def forward(self, x, y):
         return self.binary(x, y)
 
@@ -87,3 +94,25 @@ class LearnableTree(nn.Module):
             node.linear_transform = self.linear[i]
         out = new_tree.compute_by_tree(x)
         return out
+
+    def get_formula(self, operator_idxs):
+            operator_idxs = operator_idxs.reshape(-1)
+            new_tree = self.tree.create_same_tree()
+            new_tree.set_nn_operator(operator_idxs, self.learnable_operator_set.copy())
+
+            def build_formula(node):
+                if node.is_leaf:
+                    linear_transform = self.linear[node.node_idx]
+                    p = ' + '.join([f'{weight.item()}*x{i+1}' for i, weight in enumerate(linear_transform.weight.flatten())])
+                    b = linear_transform.bias.item()
+                    return f'{node.get_current_operator().get_formula()}({p} + {b})'
+                else:
+                    if node.is_unary:
+                        left_formula = build_formula(node.left)
+                        return f'{node.get_current_operator().get_formula()}({left_formula})'
+                    else:
+                        left_formula = build_formula(node.left)
+                        right_formula = build_formula(node.right)
+                        return f'({left_formula}) {node.get_current_operator().get_formula()} ({right_formula})'
+
+            return build_formula(new_tree.root)

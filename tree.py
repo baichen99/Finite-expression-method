@@ -5,8 +5,6 @@ import torch
 
 unary = func.unary_functions
 binary = func.binary_functions
-unary_functions_str = func.unary_functions_str
-binary_functions_str = func.binary_functions_str
 
 class BinaryTree:
     def __init__(self, node_operator: Callable, is_unary: bool=True):
@@ -141,15 +139,6 @@ class BinaryTree:
         self.inorder(lambda node: leaves.append(node) if node.is_leaf else None)
         return leaves
 
-    def get_operator_sequence(self, operator_idxs):
-        op_seq = []
-        for i, op_idx in enumerate(operator_idxs):
-            node_ = self.nodes[i]
-            if node_.is_unary:
-                op_seq.append(unary_functions_str[op_idx])
-            else:
-                op_seq.append(binary_functions_str[op_idx])
-        return op_seq
     
     
 if __name__ == '__main__':

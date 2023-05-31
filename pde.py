@@ -6,7 +6,6 @@ def gradients(outputs, inputs):
 def possion_eq(u, x, dim):
     # u: (bs, 1)
     # x: (bs, dim)
-    batch_size = x.size(0)
 
     # 计算 u 关于 x 的一阶导数
     du_dx = gradients(u, x)
@@ -15,8 +14,8 @@ def possion_eq(u, x, dim):
     for i in range(dim):
         d2u_dxdx = gradients(du_dx[:, i], x)[:, i].unsqueeze(1)
         laplace += d2u_dxdx
+    return -laplace + dim * torch.ones_like(u)
 
-    return -laplace + dim * torch.ones(batch_size, 1)
 
 # def RHS_pde(x):
 #     bs = x.size(0)
