@@ -50,7 +50,7 @@ class BinaryTree:
         # learnable_operator_set是2d list，每个元素是一个nn.Module的list，表示operator的备选
         assert len(learnable_operator_set) == self.node_num
         assert len(operator_idxs) == self.node_num
-        operator_idxs = operator_idxs.tolist()
+        operator_idxs = operator_idxs
         def callback_fn(node, operator_idxs, learnable_operator_set):
             ops = learnable_operator_set[0]
             nn_op = ops[operator_idxs[0]]

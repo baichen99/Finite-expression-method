@@ -5,7 +5,7 @@ from candidate import SaveBuffer, Candidate
 import torch
 from torch.utils.tensorboard import SummaryWriter
 from tree import BinaryTree
-from possion.pde import cal_l2_relative_error
+from ns_pde import cal_l2_relative_error
 
 # custom pde
 from ns_pde import ns_eq as cal_pde_loss

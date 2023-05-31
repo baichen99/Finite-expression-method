@@ -87,4 +87,11 @@ def ns_sample_pde_x(num, dim=3) -> torch.tensor:
     t = (torch.rand(num, 1) * 7).requires_grad_(True)
 
     return (x, y, t)
-    
+
+if __name__ == '__main__':
+    X = torch.rand(10, 3).requires_grad_(True)
+    U = torch.sin(X)
+    x_momentum, y_momentum, continuity = ns_eq(X[:, 0:1], X[:, 1:2], X[:, 2:3], U, 3)
+    print(x_momentum)
+    print(y_momentum)
+    print(continuity)

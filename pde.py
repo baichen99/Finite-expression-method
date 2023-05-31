@@ -26,15 +26,16 @@ def possion_true_solution(x):
     # u = 1/2 * (x1^2 + x2^2)
     return 0.5*torch.sum(x**2, dim=1, keepdim=True)#1 / (2 * x[:, 0:1] + x[:, 1:2]-5)
 
-def possion_sample_pde_x(num, dim=1):
-    x = torch.rand(num, dim).requires_grad_(True)
+def possion_sample_pde_x(num, dim=1, device=torch.device('cpu')):
+    x = torch.rand(num, dim).requires_grad_(True).to(device)
     return x
 
-def possion_sample_bc_x(num, dim=1):
-    x = torch.rand(num, dim)
+def possion_sample_bc_x(num, dim=1, device=torch.device('cpu')):
+    x = torch.rand(num, dim).requires_grad_(True).to(device)
     return x
 
 def cal_l2_relative_error(pred, true):
+    assert pred.size() == true.size()
     return torch.sqrt(torch.sum((pred - true)**2)) / torch.sqrt(torch.sum(true**2))
 
 if __name__ == '__main__':

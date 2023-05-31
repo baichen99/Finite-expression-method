@@ -1,3 +1,4 @@
+
 from tqdm import tqdm
 from learnable_tree import LearnableTree
 from controller import Controller
@@ -8,20 +9,21 @@ from tree import BinaryTree
 from pde import cal_l2_relative_error
 
 # custom pde
-from pde import possion_eq as cal_pde_loss
-from pde import possion_true_solution as true_solution
-from pde import possion_sample_bc_x as sample_bc_x
-from pde import possion_sample_pde_x as sample_pde_x
+from kflow_pde import pde as cal_pde_loss
+from kflow_pde import true_solution
+from kflow_pde import sample_bc_x
+from kflow_pde import sample_pde_x
 
 
 class args:
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    dim = 3
+    dim = 2
+    output_dim = 3
     batch_size = 10
     random_step = 0
     epoch = 100  # sample epoch
-    boundary_num = 1000
-    pde_num = 5000
+    boundary_num = 400
+    pde_num = 2600
     candidate_size = 10
     
     percentile = 0.5    # equation 18 in paper
@@ -36,19 +38,20 @@ class args:
 
 print(f'using device: {args.device}')
 
-args.tb_path = f'logs/possion/dim_{args.dim}'
+args.tb_path = f'logs/kflow/dim_{args.dim}'
 tb_writer = SummaryWriter(args.tb_path)
 
 def cal_loss(boundary_num: int, pde_num: int, operator_idxs, learnable_tree: LearnableTree):
-    pde_x = sample_pde_x(pde_num, args.dim, args.device)
+    x, y = sample_pde_x(pde_num, args.dim, args.device)
     obs_x = sample_bc_x(boundary_num, args.dim, args.device)
     
     bc_true = true_solution(obs_x)
     bc_pred = learnable_tree(obs_x, operator_idxs)
     bc_loss = torch.mean((bc_true - bc_pred)**2)
     
-    pde_pred = learnable_tree(pde_x, operator_idxs)
-    pde_residual = cal_pde_loss(pde_pred, pde_x, args.dim)
+    pde_pred = learnable_tree(torch.cat([x, y], dim=1), operator_idxs)
+    x_momentum, y_momentum, continuity = cal_pde_loss(x, y, pde_pred)
+    pde_residual = x_momentum.pow(2).mean() + y_momentum.pow(2).mean() + continuity.pow(2).mean()
     pde_loss = torch.mean(pde_residual**2)
     
     loss = args.bc_weight * bc_loss + pde_loss
@@ -198,8 +201,7 @@ if __name__ == '__main__':
 
     controller = Controller(tree, dim=args.dim, device=args.device).to(args.device)
     controller_optim = torch.optim.Adam(controller.parameters(), lr=args.controller_lr)
-    learnable_tree = LearnableTree(tree, dim=args.dim).to(args.device)
+    learnable_tree = LearnableTree(tree, dim=args.dim, output_dim=args.output_dim).to(args.device)
     # operators, log_probs = controller.sample(args.batch_size)
-    # train_controller = TrainController(controller, learnable_tree, controller_optim)
-    expr = learnable_tree.get_formula(torch.tensor([1, 1, 1, 1, 1, 1]))
-    print(expr)
+    train_controller = TrainController(controller, learnable_tree, controller_optim)
+    

@@ -17,7 +17,8 @@ binary = func.binary_functions
 
 
 class Controller(torch.nn.Module):
-    def __init__(self, tree: BinaryTree, dim=1):
+    def __init__(self, tree: BinaryTree, dim=1, device=torch.device('cpu')):
+        self.device = device
         self.tree = tree
         torch.nn.Module.__init__(self)
 
@@ -46,7 +47,7 @@ class Controller(torch.nn.Module):
         return logits
 
     def sample(self, batch_size=1, step=0, random_step=0):
-        inputs = torch.zeros(batch_size, self.input_size)
+        inputs = torch.zeros(batch_size, self.input_size).to(self.device)
         log_probs = []
         operators = []
         operator_choices = []
