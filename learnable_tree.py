@@ -109,12 +109,12 @@ class LearnableTree(nn.Module):
             info = ''
             info += f'op_str: {node.op_str} '
             if node.is_leaf:
-                w = node.linear_transform.weight.flatten().data()
-                b = node.linear_transform.bias.data()
+                w = node.linear_transform.weight.flatten().detach().numpy()
+                b = node.linear_transform.bias.detach().numpy()
                 info += f'w: {w}, b: {b}'
             elif node.is_unary:
-                alpha = node.node_operator.a.data()
-                beta = node.node_operator.b.data()
+                alpha = node.node_operator.a.detach().numpy()
+                beta = node.node_operator.b.detach().numpy()
                 info += f'alpha: {alpha}, beta: {beta}'
             print(info)
         

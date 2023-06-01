@@ -36,7 +36,9 @@ def possion_sample_bc_x(num, dim=1, device=torch.device('cpu')):
 
 def cal_l2_relative_error(pred, true):
     assert pred.size() == true.size()
-    return torch.sqrt(torch.sum((pred - true)**2)) / torch.sqrt(torch.sum(true**2))
+    # pred.shape = (bs, dim)
+    # true.shape = (bs, dim)
+    return torch.mean(torch.sqrt(torch.sum((pred - true)**2, dim=1, keepdim=True)) / torch.sqrt(torch.sum(true**2, dim=1, keepdim=True)))
 
 if __name__ == '__main__':
     x = torch.rand(10, 2).requires_grad_(True)

@@ -21,7 +21,7 @@ class args:
     output_dim = 3
     batch_size = 10
     random_step = 0
-    epoch = 100  # sample epoch
+    epoch = 10  # sample epoch
     boundary_num = 400
     pde_num = 2600
     candidate_size = 10
@@ -177,10 +177,14 @@ def finetune(learnable_tree: LearnableTree, operator_idxs: list, tree_optim: tor
         loss.backward()
         tree_optim.step()
 
-        if epoch % 1000 == 0:
+        if epoch % 100 == 0:
             # cal l2 relative error
             err = eval(args.test_num, learnable_tree, operator_idxs)
-            tb_writer.add_scalar('finetune/l2_relative_error', err, epoch)
+            u_err, v_err, p_err = err
+            tb_writer.add_scalar('u_err', u_err, epoch)
+            tb_writer.add_scalar('v_err', v_err, epoch)
+            tb_writer.add_scalar('p_err', p_err, epoch)
+            
             print(f'l2_relative_err: {err}')
     return loss.item()
 
@@ -207,7 +211,7 @@ if __name__ == '__main__':
             node.leftChild = create_tree(depth - 1)
             node.rightChild = create_tree(depth - 1)
             return node
-    tree = create_tree(10)
+    tree = create_tree(5)
     controller = Controller(tree, dim=args.dim, device=args.device).to(args.device)
     controller_optim = torch.optim.Adam(controller.parameters(), lr=args.controller_lr)
     learnable_tree = LearnableTree(tree, dim=args.dim, output_dim=args.output_dim).to(args.device)

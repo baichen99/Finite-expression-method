@@ -80,17 +80,8 @@ def pinn_train(model, optimizer, dim, epoch):
 
 
 #train
-num_epoch = 10000
+num_epoch = 30000
 model = MLP(seq_net=[dim] + [50] * 4 + [3]).to(device)
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 for epoch in range(num_epoch):
     pinn_train(model, optimizer, dim, epoch)
-# LBFGS
-optimizer = torch.optim.LBFGS(model.parameters(), lr=1e-1, max_iter=500, max_eval=None, tolerance_grad=1e-07, tolerance_change=1e-09, history_size=100, line_search_fn=None)
-def closure():
-    optimizer.zero_grad()
-    loss = pinn_train(model, optimizer, dim, epoch)
-    return loss
-optimizer.step(closure)
-
-# l2 err == 0.23

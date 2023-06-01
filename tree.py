@@ -53,20 +53,32 @@ class BinaryTree:
         # learnable_operator_set是2d list，每个元素是一个nn.Module的list，表示operator的备选
         assert len(learnable_operator_set) == self.node_num
         assert len(operator_idxs) == self.node_num
+        # operator_idxs = operator_idxs
+        # def callback_fn(node, operator_idxs, learnable_operator_set):
+        #     ops = learnable_operator_set[0]
+        #     nn_op = ops[operator_idxs[0]]
+        #     node.node_operator = nn_op
+        #     if node.is_unary:
+        #         node.op_str = unary_str[operator_idxs[0]]
+        #     else:
+        #         node.op_str = binary_str[operator_idxs[0]]
+        #     # test pytorch >= 1.13 support ModuleList.pop
+        #     operator_idxs.pop(0)
+        #     learnable_operator_set.pop(0)
+        # self.inorder(callback_fn, operator_idxs, learnable_operator_set)
+        
+        # support pytorch < 1.13
         operator_idxs = operator_idxs
+        idx = [0]  # Use a list to hold the index so that it can be modified in the callback function
+
         def callback_fn(node, operator_idxs, learnable_operator_set):
-            ops = learnable_operator_set[0]
-            nn_op = ops[operator_idxs[0]]
+            ops = learnable_operator_set[idx[0]]
+            nn_op = ops[operator_idxs[idx[0]]]
             node.node_operator = nn_op
-            if node.is_unary:
-                node.op_str = unary_str[operator_idxs[0]]
-            else:
-                node.op_str = binary_str[operator_idxs[0]]
-            # test pytorch >= 1.13 support ModuleList.pop
-            operator_idxs.pop(0)
-            learnable_operator_set.pop(0)
+            idx[0] += 1  # Increment the index instead of popping the first element
+
         self.inorder(callback_fn, operator_idxs, learnable_operator_set)
-    
+
     def compute_by_tree(self, x):
         # 使用中序遍历计算表达式的值
         # 叶子
