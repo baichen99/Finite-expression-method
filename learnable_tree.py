@@ -14,6 +14,8 @@ class UnaryOperation(nn.Module):
     def __init__(self, operator, is_leave):
         super(UnaryOperation, self).__init__()
         self.unary = operator
+        self.a = None
+        self.b = None
         if not is_leave:
             self.a = nn.Parameter(torch.Tensor(1))
             self.a.data.fill_(1)
@@ -21,11 +23,8 @@ class UnaryOperation(nn.Module):
             self.b.data.fill_(0)
         self.is_leave = is_leave
     
-    def get_formula(self):
-        if self.is_leave:
-            return func.function_to_str[self.unary]
-        else:
-            return f'{func.function_to_str[self.unary]}({self.a.item()}*x + {self.b.item()})'
+    def get_op(self, idx):
+        return func.unary_str[idx]
     
     def forward(self, x):
         if self.is_leave:
@@ -40,6 +39,9 @@ class BinaryOperation(nn.Module):
     
     def forward(self, x, y):
         return self.binary(x, y)
+    
+    def get_op(self, idx):
+        return func.binary_str[idx]
 
 class LearnableTree(nn.Module):
     def __init__(self, tree: BinaryTree, dim=1, output_dim=1):
@@ -103,31 +105,60 @@ class LearnableTree(nn.Module):
         out = new_tree.compute_by_tree(x)
         return out
 
+    def get_node_info(node: BinaryTree):
+            info = ''
+            info += f'op_str: {node.op_str} '
+            if node.is_leaf:
+                w = node.linear_transform.weight.flatten().data()
+                b = node.linear_transform.bias.data()
+                info += f'w: {w}, b: {b}'
+            elif node.is_unary:
+                alpha = node.node_operator.a.data()
+                beta = node.node_operator.b.data()
+                info += f'alpha: {alpha}, beta: {beta}'
+            print(info)
+        
     def get_formula(self, operator_idxs):
         operator_idxs = operator_idxs.reshape(-1)
         new_tree = self.tree.create_same_tree()
         operator_idxs_copy = operator_idxs.tolist().copy()  # create a copy of operator_idxs
         learnable_operator_set_copy = nn.ModuleList([op for op in self.learnable_operator_set]) 
         new_tree.set_nn_operator(operator_idxs_copy, learnable_operator_set_copy)
-        
         for i, node in enumerate(new_tree.get_leaves()):
             node.linear_transform = self.linear[i]
-        
+            
+        new_tree.inorder(LearnableTree.get_node_info)
+
         def build_formula(node: BinaryTree):
             if node.is_leaf:
                 linear_transform = node.linear_transform
-                p = ' + '.join([f'{weight.item()}*x{i+1}' for i, weight in enumerate(linear_transform.weight.flatten())])
-                b = linear_transform.bias.item()
-                print(f'{node.node_operator.get_formula()}({p} + {b})')
-                return f'{node.node_operator.get_formula()}({p} + {b})'
+                b = str(linear_transform.bias.item())
+                
+                if node.op_str == '0':
+                    return '0'
+                elif node.op_str == '1':
+                    p = ' + '.join([f'{weight.item()}' for i, weight in enumerate(linear_transform.weight.flatten())])
+                    return f'{p} + {b}'
+                elif node.op_str in ['', '^2', '^3', '^4']: # ^1省略为''
+                    # 后缀
+                    # a * x + b
+                    # (a_1 * x_1 + a_2 * x_2 + ... + a_n * x_n) + b
+                    p = ' + '.join([f'{weight.item()} * (x_{i}){node.op_str}' for i, weight in enumerate(linear_transform.weight.flatten())])
+                    return f'({p}) + {b}'
+                else:
+                    # 前缀：比如sin, cos
+                    # w1*sin(x1) + w2*sin(x2) + .. + b
+                    p = ' + '.join([f'{weight.item()} * {node.op_str}(x_{i})' for i, weight in enumerate(linear_transform.weight.flatten())])
+                    return f'({p}) + {b}'
             else:
                 if node.is_unary:
-                    # left_formula = build_formula(node.leftChild)
-                    # return f'{node.node_operator.get_formula()}({left_formula})'
-                    return build_formula(node.leftChild)
+                    # 一元操作 sin(??) (??)^2 ...
+                    if node.op_str in ['0', '1']:
+                        return node.op_str
+                    elif node.op_str in ['', '^2', '^3', '^4']: #  # ^1省略为''
+                        return '(' + build_formula(node.leftChild) + ')' + node.op_str
+                    else:
+                        return node.op_str + '(' + build_formula(node.leftChild) + ')'
                 else:
-                    left_formula = build_formula(node.leftChild)
-                    right_formula = build_formula(node.rightChild)
-                    return f'({left_formula}) ({right_formula})'
-
+                    return '(' + build_formula(node.leftChild) + node.op_str + build_formula(node.rightChild) + ')'
         return build_formula(new_tree)

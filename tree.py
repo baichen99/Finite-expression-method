@@ -2,14 +2,18 @@ import numpy as np
 import function as func
 from typing import Callable
 import torch
+from torch import nn
 
 unary = func.unary_functions
 binary = func.binary_functions
+unary_str = func.unary_str
+binary_str = func.binary_str
 
 class BinaryTree:
     def __init__(self, node_operator: Callable, is_unary: bool=True):
         self.node_operator = node_operator
         self.is_unary=is_unary
+        self.op_str = ''
         self.leftChild = None
         self.rightChild = None
         
@@ -26,7 +30,6 @@ class BinaryTree:
         if self.rightChild:
             self.rightChild.inorder(callback_fn, *args, **kwargs)
             
-    
     @property
     def nodes(self):
         nodes = []
@@ -43,7 +46,7 @@ class BinaryTree:
 
         self.inorder(callback_fn, operator_idxs)
     
-    def set_nn_operator(self, operator_idxs:list, learnable_operator_set:list):
+    def set_nn_operator(self, operator_idxs:list, learnable_operator_set: nn.ModuleList):
         # set_operator设置每个operator的的类型为function
         # set_nn_operator设置每个operator的类型为nn.Module
         # operator_idxs是1d list，每个元素是一个int，表示operator的索引
@@ -55,6 +58,11 @@ class BinaryTree:
             ops = learnable_operator_set[0]
             nn_op = ops[operator_idxs[0]]
             node.node_operator = nn_op
+            if node.is_unary:
+                node.op_str = unary_str[operator_idxs[0]]
+            else:
+                node.op_str = binary_str[operator_idxs[0]]
+            # test pytorch >= 1.13 support ModuleList.pop
             operator_idxs.pop(0)
             learnable_operator_set.pop(0)
         self.inorder(callback_fn, operator_idxs, learnable_operator_set)
@@ -74,7 +82,6 @@ class BinaryTree:
         else:
             # 打印node_operator的类型
             return self.node_operator(self.leftChild.compute_by_tree(x), self.rightChild.compute_by_tree(x))
-
     
     @property
     def node_num(self):

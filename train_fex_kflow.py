@@ -29,8 +29,8 @@ class args:
     percentile = 0.5    # equation 18 in paper
     controller_lr = 2e-3
     controller_grad_clip = 0
-    finetune_epochs = 10000
-    finetune_lr = 1e-2
+    finetune_epochs = 30000
+    finetune_lr = 1e-3
     base = 20000
     bc_weight = 100
     
@@ -186,19 +186,28 @@ def finetune(learnable_tree: LearnableTree, operator_idxs: list, tree_optim: tor
 
 
 if __name__ == '__main__':
-    # build a computation tree
-    #     X
-    #    / \
-    #   X   X
-    #  / \  |
-    # X  X  X  
-    tree = BinaryTree(node_operator=None, is_unary=False)
-    tree.leftChild = BinaryTree(node_operator=None, is_unary=False)
-    tree.rightChild = BinaryTree(node_operator=None, is_unary=True)
-    tree.leftChild.leftChild = BinaryTree(node_operator=None, is_unary=True)
-    tree.leftChild.rightChild = BinaryTree(node_operator=None, is_unary=True)
-    tree.rightChild.leftChild = BinaryTree(node_operator=None, is_unary=True)
-
+    # # build a computation tree
+    # #     X
+    # #    / \
+    # #   X   X
+    # #  / \  |
+    # # X  X  X  
+    # tree = BinaryTree(node_operator=None, is_unary=False)
+    # tree.leftChild = BinaryTree(node_operator=None, is_unary=False)
+    # tree.rightChild = BinaryTree(node_operator=None, is_unary=True)
+    # tree.leftChild.leftChild = BinaryTree(node_operator=None, is_unary=True)
+    # tree.leftChild.rightChild = BinaryTree(node_operator=None, is_unary=True)
+    # tree.rightChild.leftChild = BinaryTree(node_operator=None, is_unary=True)
+    # 创建满二叉树
+    def create_tree(depth):
+        if depth == 0:
+            return BinaryTree(node_operator=None, is_unary=True)
+        else:
+            node = BinaryTree(node_operator=None, is_unary=False)
+            node.leftChild = create_tree(depth - 1)
+            node.rightChild = create_tree(depth - 1)
+            return node
+    tree = create_tree(10)
     controller = Controller(tree, dim=args.dim, device=args.device).to(args.device)
     controller_optim = torch.optim.Adam(controller.parameters(), lr=args.controller_lr)
     learnable_tree = LearnableTree(tree, dim=args.dim, output_dim=args.output_dim).to(args.device)

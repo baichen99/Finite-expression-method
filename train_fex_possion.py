@@ -201,5 +201,5 @@ if __name__ == '__main__':
     learnable_tree = LearnableTree(tree, dim=args.dim).to(args.device)
     # operators, log_probs = controller.sample(args.batch_size)
     # train_controller = TrainController(controller, learnable_tree, controller_optim)
-    expr = learnable_tree.get_formula(torch.tensor([1, 1, 1, 1, 1, 1]))
+    expr = learnable_tree.get_formula(torch.tensor([3, 1, 0, 2, 1, 0]))
     print(expr)
