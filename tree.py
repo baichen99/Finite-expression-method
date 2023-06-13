@@ -3,6 +3,7 @@ import function as func
 from typing import Callable
 import torch
 from torch import nn
+import queue
 
 unary = func.unary_functions
 binary = func.binary_functions
@@ -10,9 +11,8 @@ unary_str = func.unary_str
 binary_str = func.binary_str
 
 class BinaryTree:
-    def __init__(self, node_operator: Callable, is_unary: bool=True):
+    def __init__(self, node_operator: Callable=None):
         self.node_operator = node_operator
-        self.is_unary=is_unary
         self.op_str = ''
         self.leftChild = None
         self.rightChild = None
@@ -32,10 +32,29 @@ class BinaryTree:
             
     @property
     def nodes(self):
-        nodes = []
-        self.inorder(lambda node: nodes.append(node))
-        return nodes
+        if not hasattr(self, '_nodes'):
+            nodes = []
+            self.inorder(lambda node: nodes.append(node))
+            self._nodes = nodes
+        return self._nodes
+
+    @property
+    def is_leaf(self):
+        return self.leftChild is None and self.rightChild is None
     
+    @property
+    def is_unary(self):
+        # 只有一个孩子
+        return (self.leftChild is not None and self.rightChild is None) or \
+            (self.leftChild is None and self.rightChild is not None) or \
+            self.is_leaf
+    
+    @property
+    def is_binary(self):
+        # 有两个孩子
+        return self.leftChild is not None and self.rightChild is not None
+    
+
     def set_operator(self, operator_idxs):
         def callback_fn(node, operator_idxs):
             if node.is_unary:
@@ -97,55 +116,31 @@ class BinaryTree:
     
     @property
     def node_num(self):
-        # 如果没有定义self._node_num，那么就计算一次
-        if not hasattr(self, '_node_num'):
-            self._node_num = 1
-            if self.leftChild:
-                self._node_num += self.leftChild.node_num
-            if self.rightChild:
-                self._node_num += self.rightChild.node_num
-        return self._node_num
+        return len(self.nodes)
     
-    @property
-    def is_leaf(self):
-        return self.leftChild == None and self.rightChild == None
-
     @property
     def leaves_num(self):
         # 如果没有定义self._leaves_num，那么就计算一次
         if not hasattr(self, '_leaves_num'):
-            self._leaves_num = 1
-            if self.leftChild:
-                self._leaves_num += self.leftChild.leaves_num
-            if self.rightChild:
-                self._leaves_num += self.rightChild.leaves_num
+            self._leaves_num = len([node for node in self.nodes if node.is_leaf])
         return self._leaves_num
     
     @property
     def unary_num(self):
         # 如果没有定义self._unary_num，那么就计算一次
         if not hasattr(self, '_unary_num'):
-            self._unary_num = 1 if self.is_unary else 0
-            if self.leftChild:
-                self._unary_num += self.leftChild.unary_num
-            if self.rightChild:
-                self._unary_num += self.rightChild.unary_num
+            self._unary_num = len([node for node in self.nodes if node.is_unary])
         return self._unary_num
 
     @property
     def binary_num(self):
-        # 如果没有定义self._binary_num，那么就计算一次
         if not hasattr(self, '_binary_num'):
-            self._binary_num = 0 if self.is_unary else 1
-            if self.leftChild:
-                self._binary_num += self.leftChild.binary_num
-            if self.rightChild:
-                self._binary_num += self.rightChild.binary_num
+            self._binary_num = len([node for node in self.nodes if node.is_binary])
         return self._binary_num
 
     def create_same_tree(self):
         # 创建一棵与自身结构相同的树, 但是操作为空
-        new_tree = BinaryTree(None, self.is_unary)
+        new_tree = BinaryTree()
         if self.leftChild:
             new_tree.insert_leftChild(self.leftChild.create_same_tree())
         if self.rightChild:
@@ -158,7 +153,32 @@ class BinaryTree:
         self.inorder(lambda node: leaves.append(node) if node.is_leaf else None)
         return leaves
 
-    
+def create_empty_tree_by_level_order(level_order):
+    """
+        level_order: list, 层序遍历的结点值, e.g. [1, 2, 3, None, None, 5, 6]
+    """
+    if not level_order or level_order[0] is None:
+        return None
+
+    root = BinaryTree()
+    q = queue.Queue()
+    q.put(root)
+
+    i = 1
+    while not q.empty() and i < len(level_order):
+        node = q.get()
+
+        if level_order[i] is not None:
+            node.leftChild = BinaryTree()
+            q.put(node.leftChild)
+        i += 1
+
+        if i < len(level_order) and level_order[i] is not None:
+            node.rightChild = BinaryTree()
+            q.put(node.rightChild)
+        i += 1
+
+    return root
     
 if __name__ == '__main__':
     # 测试
